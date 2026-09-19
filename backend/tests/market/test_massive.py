@@ -43,6 +43,8 @@ class TestMassiveDataSource:
 
         assert cache.get_price("AAPL") == 190.50
         assert cache.get_price("GOOGL") == 175.25
+        assert cache.get("AAPL").open_price == 190.50
+        assert cache.get("GOOGL").open_price == 175.25
 
     async def test_malformed_snapshot_skipped(self):
         """Test that malformed snapshots are skipped gracefully."""

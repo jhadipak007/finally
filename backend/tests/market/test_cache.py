@@ -101,3 +101,35 @@ class TestPriceCache:
         cache = PriceCache()
         update = cache.update("AAPL", 190.12345)
         assert update.price == 190.12
+
+    def test_open_price_set_on_first_update(self):
+        """Test that the open price equals the price on the first update."""
+        cache = PriceCache()
+        update = cache.update("AAPL", 190.50)
+        assert update.open_price == 190.50
+
+    def test_open_price_stays_fixed_across_updates(self):
+        """Test that the open price does not change on subsequent updates."""
+        cache = PriceCache()
+        cache.update("AAPL", 190.00)
+        cache.update("AAPL", 195.00)
+        update = cache.update("AAPL", 185.00)
+        assert update.open_price == 190.00
+        assert update.price == 185.00
+
+    def test_open_price_resets_after_remove(self):
+        """Test that removing a ticker clears its session open price."""
+        cache = PriceCache()
+        cache.update("AAPL", 190.00)
+        cache.update("AAPL", 195.00)
+        cache.remove("AAPL")
+
+        update = cache.update("AAPL", 200.00)
+        assert update.open_price == 200.00
+        assert update.previous_price == 200.00
+
+    def test_open_price_rounded(self):
+        """Test that the open price is rounded to 2 decimal places."""
+        cache = PriceCache()
+        update = cache.update("AAPL", 190.12345)
+        assert update.open_price == 190.12

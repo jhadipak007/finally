@@ -17,6 +17,7 @@ class PriceCache:
 
     def __init__(self) -> None:
         self._prices: dict[str, PriceUpdate] = {}
+        self._open_prices: dict[str, float] = {}
         self._lock = Lock()
         self._version: int = 0  # Monotonically increasing; bumped on every update
 
@@ -25,16 +26,26 @@ class PriceCache:
 
         Automatically computes direction and change from the previous price.
         If this is the first update for the ticker, previous_price == price (direction='flat').
+
+        The session open price is the first price recorded for this ticker
+        since it was last untracked (see `remove`); it stays fixed across
+        subsequent updates and is the baseline for daily change %.
         """
         with self._lock:
             ts = timestamp or time.time()
             prev = self._prices.get(ticker)
             previous_price = prev.price if prev else price
+            rounded_price = round(price, 2)
+
+            if ticker not in self._open_prices:
+                self._open_prices[ticker] = rounded_price
+            open_price = self._open_prices[ticker]
 
             update = PriceUpdate(
                 ticker=ticker,
-                price=round(price, 2),
+                price=rounded_price,
                 previous_price=round(previous_price, 2),
+                open_price=open_price,
                 timestamp=ts,
             )
             self._prices[ticker] = update
@@ -57,9 +68,14 @@ class PriceCache:
         return update.price if update else None
 
     def remove(self, ticker: str) -> None:
-        """Remove a ticker from the cache (e.g., when removed from watchlist)."""
+        """Remove a ticker from the cache (e.g., when removed from watchlist).
+
+        Also clears its session open price, so if the ticker is tracked again
+        later, the next update establishes a fresh open price.
+        """
         with self._lock:
             self._prices.pop(ticker, None)
+            self._open_prices.pop(ticker, None)
 
     @property
     def version(self) -> int:

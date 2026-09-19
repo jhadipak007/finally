@@ -59,6 +59,17 @@ class TestSimulatorDataSource:
 
         await source.stop()
 
+    async def test_start_seeds_open_price(self):
+        """Test that the initial seed price also becomes the open price."""
+        cache = PriceCache()
+        source = SimulatorDataSource(price_cache=cache, update_interval=0.1)
+        await source.start(["AAPL"])
+
+        update = cache.get("AAPL")
+        assert update.open_price == update.price
+
+        await source.stop()
+
     async def test_remove_ticker(self):
         """Test removing a ticker."""
         cache = PriceCache()
